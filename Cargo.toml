@@ -1,0 +1,14 @@
+[package]
+name        = "ion_log"
+version     = "0.1.0"
+authors     = ["Kyle Finlay <kyle.finlay01@gmail.com>"]
+description = "A simple logging library."
+license     = "Apache-2.0"
+
+[lib]
+path       = "src/lib.rs"
+crate-type = ["rlib"]
+
+[dependencies]
+ansi_term = "*"
+log       = "*"
