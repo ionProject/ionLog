@@ -16,6 +16,31 @@
 
 /*===============================================================================================*/
 //! ionLog is a simple to use logging library.
+//!
+//! # Example
+//! ```
+//! #[macro_use]
+//! extern crate log;
+//! extern crate ion_log;
+//! use ion_log::LogConfig;
+//!
+//! fn main () {
+//!
+//!     let mut config = LogConfig::new ();
+//!     config.log_to_file = true;
+//!     config.log_output_path = "Log.txt".to_string ();
+//!
+//!     ion_log::init (&config).unwrap ();
+//!
+//!     trace! ("This is a trace log");
+//!     debug! ("This is a debug log");
+//!     info!  ("This is an info log");
+//!     warn!  ("This is a warning log");
+//!     error! ("This is an error log");
+//!
+//!     ion_log::release ();
+//! }
+//! ```
 /*===============================================================================================*/
 
 // Crate attributes
@@ -27,8 +52,8 @@ extern crate ansi_term;
 extern crate log;
 
 // Module imports
-use ansi_term::Colour::{Blue, Purple, Yellow, Red};
-pub use log::{Log, LogRecord, LogMetadata, LogLevelFilter};
+use ansi_term::Colour::{Green, Blue, Purple, Yellow, Red};
+pub use log::LogLevelFilter as LogLevel;
 
 use std::boxed::Box;
 use std::fs::File;
@@ -36,193 +61,162 @@ use std::io::BufWriter;
 use std::io::prelude::Write;
 
 /*===============================================================================================*/
-/*------LOG BUILDER STRUCT-----------------------------------------------------------------------*/
+/*------LOG CONFIG STRUCT------------------------------------------------------------------------*/
 /*===============================================================================================*/
 
-/// Allows for easy configuration of the logger.
-#[derive (Debug)]
-pub struct LogBuilder {
+/// Stores the logger configuration.
+#[derive (Clone, Debug)]
+pub struct LogConfig {
 
-    // Private
-    _coloured_output: bool,
-    _log_file_path:   String,
-    _log_to_file:     bool,
-    _log_to_term:     bool,
-    _max_log_level:   LogLevelFilter,
+    // Public
+    /// Whether to log to the terminal.
+    pub log_to_io:       bool,
+    /// Whether to log to a file.
+    pub log_to_file:     bool,
+    /// The log output file path.
+    pub log_output_path: String,
+    /// Whether to use colour coded output.
+    pub coloured_output: bool,
+    /// The maximum log level.
+    pub max_log_level:   LogLevel,
 }
 
 /*===============================================================================================*/
-/*------LOG BUILDER TRAIT IMPLEMENTATIONS--------------------------------------------------------*/
+/*------LOG CONFIG TRAIT IMPLEMENTATIONS---------------------------------------------------------*/
 /*===============================================================================================*/
 
-impl Default for LogBuilder {
+impl Default for LogConfig {
 
     fn default () -> Self {
 
-        LogBuilder::new ()
+        LogConfig::new ()
     }
 }
 
 /*===============================================================================================*/
-/*------LOG BUILDER PUBLIC METHODS---------------------------------------------------------------*/
+/*------LOG CONFIG PUBLIC METHODS----------------------------------------------------------------*/
 /*===============================================================================================*/
 
-impl LogBuilder {
+impl LogConfig {
 
-    /// Returns a new `LogBuilder` instance
+    /// Returns a new instance of `LogConfig`.
     ///
     /// # Examples
     /// ```
-    /// # use ion_log::LogBuilder;
-    /// let builder = LogBuilder::new ();
+    /// # use ion_log::LogConfig;
+    /// let config = LogConfig::new ();
     /// ```
     pub fn new () -> Self {
 
-        LogBuilder {
+        LogConfig {
 
-            _coloured_output: true,
-            _log_file_path:   "log.txt".to_string (),
-            _log_to_file:     true,
-            _log_to_term:     true,
-            _max_log_level:   LogLevelFilter::Debug,
+            log_to_io:       true,
+            log_to_file:     false,
+            log_output_path: String::new (),
+            coloured_output: true,
+            max_log_level:   LogLevel::Trace,
         }
-    }
-
-/*-----------------------------------------------------------------------------------------------*/
-
-    /// Sets whether the terminal output should be colour coded.
-    ///
-    /// # Examples
-    /// ```
-    /// # use ion_log::LogBuilder;
-    /// let mut builder = LogBuilder::new ();
-    /// builder.coloured_output (false);
-    /// ```
-    pub fn coloured_output (&mut self, coloured_output: bool) -> &mut Self {
-
-        self._coloured_output = coloured_output;
-        self
-    }
-
-/*-----------------------------------------------------------------------------------------------*/
-
-    /// Sets the log file path.
-    ///
-    /// # Examples
-    /// ```
-    /// # use ion_log::LogBuilder;
-    /// let mut builder = LogBuilder::new ();
-    /// builder.log_file_path ("./Logs/log.txt");
-    /// ```
-    pub fn log_file_path (&mut self, log_file_path: &str) -> &mut Self {
-
-        self._log_file_path = log_file_path.to_string ();
-        self
-    }
-
-/*-----------------------------------------------------------------------------------------------*/
-
-    /// Sets whether to write output to a file.
-    ///
-    /// # Examples
-    /// ```
-    /// # use ion_log::LogBuilder;
-    /// let mut builder = LogBuilder::new ();
-    /// builder.log_to_file (true);
-    /// ```
-    pub fn log_to_file (&mut self, log_to_file: bool) -> &mut Self {
-
-        self._log_to_file = log_to_file;
-        self
-    }
-
-/*-----------------------------------------------------------------------------------------------*/
-
-    /// Sets whether to write output to the terminal.
-    ///
-    /// # Examples
-    /// ```
-    /// # use ion_log::LogBuilder;
-    /// let mut builder = LogBuilder::new ();
-    /// builder.log_to_term (true);
-    /// ```
-    pub fn log_to_term (&mut self, log_to_term: bool) -> &mut Self {
-
-        self._log_to_term = log_to_term;
-        self
-    }
-
-/*-----------------------------------------------------------------------------------------------*/
-
-    /// Sets the max log level.
-    ///
-    /// # Examples
-    /// ```
-    /// # use ion_log::{LogBuilder, LogLevelFilter};
-    /// let mut builder = LogBuilder::new ();
-    /// builder.max_log_level (LogLevelFilter::Debug);
-    /// ```
-    pub fn max_log_level (&mut self, log_level: LogLevelFilter) -> &mut Self {
-
-        self._max_log_level = log_level;
-        self
-    }
-
-/*-----------------------------------------------------------------------------------------------*/
-
-    /// Finalizes the builder and initializes the logger.
-    ///
-    /// # Examples
-    /// ```
-    /// # use ion_log::LogBuilder;
-    /// let mut builder = LogBuilder::new ();
-    /// builder.log_file_path ("log.txt")
-    ///        .coloured_output (false)
-    ///        .finalize ()
-    ///        .unwrap ();
-    /// ```
-    pub fn finalize (&self) -> Result<(), log::SetLoggerError> {
-
-        log::set_logger (|max_log_level| {
-
-            max_log_level.set (self._max_log_level);
-
-            Box::new (Logger {
-
-                _coloured_output: self._coloured_output,
-                _log_file:        BufWriter::new (File::create (&self._log_file_path).unwrap ()),
-                _log_to_file:     self._log_to_file,
-                _log_to_term:     self._log_to_term,
-            })
-        })
     }
 }
 
 /*===============================================================================================*/
-/*------LOG STRUCT-------------------------------------------------------------------------------*/
+/*------LOGGER STRUCT----------------------------------------------------------------------------*/
 /*===============================================================================================*/
 
 struct Logger {
 
-    _coloured_output: bool,
-    _log_file:        BufWriter<File>,
-    _log_to_file:     bool,
-    _log_to_term:     bool,
+    // Private
+    config: LogConfig,
+    log_output_buffer: BufWriter<File>,
 }
 
 /*===============================================================================================*/
-/*------LOG TRAIT IMPLEMENTATIONS----------------------------------------------------------------*/
+/*------LOGGER TRAIT IMPLEMENTATIONS-------------------------------------------------------------*/
 /*===============================================================================================*/
 
 impl log::Log for Logger {
 
-    fn enabled (&self, metadata: &LogMetadata) -> bool {
-        unimplemented! ()
+    fn enabled (&self, metadata: &log::LogMetadata) -> bool {
+        metadata.level () <= self.config.max_log_level
     }
 
 /*-----------------------------------------------------------------------------------------------*/
 
-    fn log (&self, record: &LogRecord) {
-        unimplemented! ()
+    fn log (&self, record: &log::LogRecord) {
+
+        let log_string = self.format_log_string (record);
+
+        if self.config.log_to_io {
+
+            if self.config.coloured_output {
+                println! ("{}", self.format_log_colour (record, &log_string));
+            }
+
+            else {
+                println! ("{}", log_string);
+            }
+        }
+
+        if self.config.log_to_file {
+            self.log_output_buffer.get_ref ().write (log_string.as_bytes ()).unwrap ();
+        }
     }
+}
+
+/*===============================================================================================*/
+/*------LOGGER PRIVATE METHODS-------------------------------------------------------------------*/
+/*===============================================================================================*/
+
+impl Logger {
+
+    fn format_log_string (&self, record: &log::LogRecord) -> String {
+
+        let log_string = format! ("[{} - {}] {}: {}\n",
+                                  record.location ().module_path (),
+                                  record.location ().line (),
+                                  record.level (),
+                                  record.args ());
+        log_string
+    }
+
+/*-----------------------------------------------------------------------------------------------*/
+
+    fn format_log_colour (&self, record: &log::LogRecord, log_string: &str) -> String {
+
+        match record.level () {
+
+            log::LogLevel::Trace => Green.paint  (log_string),
+            log::LogLevel::Debug => Blue.paint   (log_string),
+            log::LogLevel::Info  => Purple.paint (log_string),
+            log::LogLevel::Warn  => Yellow.paint (log_string),
+            log::LogLevel::Error => Red.paint    (log_string)
+
+        }.to_string ()
+    }
+}
+
+/*===============================================================================================*/
+/*------PUBLIC FUNCTIONS-------------------------------------------------------------------------*/
+/*===============================================================================================*/
+
+/// Initializes the logger.
+pub fn init (config: &LogConfig) -> Result<(), log::SetLoggerError> {
+
+    log::set_logger (|max_log_level| {
+
+        max_log_level.set (config.max_log_level);
+
+        Box::new (Logger {
+
+            config: config.clone (),
+            log_output_buffer: BufWriter::new (File::create (&config.log_output_path).unwrap ()),
+        })
+    })
+}
+
+/*-----------------------------------------------------------------------------------------------*/
+
+/// Releases the logger.
+pub fn release () {
+    drop (log::shutdown_logger ().unwrap ());
 }

@@ -12,3 +12,4 @@ crate-type = ["rlib"]
 [dependencies]
 ansi_term = "*"
 log       = "*"
+
