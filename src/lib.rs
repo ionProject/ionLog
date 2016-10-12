@@ -200,6 +200,14 @@ impl Logger {
 /*===============================================================================================*/
 
 /// Initializes the logger.
+///
+/// # Examples
+/// ```
+/// # use ion_log::*;
+/// let config = LogConfig::new ();
+/// ion_log::init (&config).unwrap ();
+/// # ion_log::release ();
+/// ```
 pub fn init (config: &LogConfig) -> Result<(), log::SetLoggerError> {
 
     log::set_logger (|max_log_level| {
@@ -226,6 +234,14 @@ pub fn init (config: &LogConfig) -> Result<(), log::SetLoggerError> {
 /*-----------------------------------------------------------------------------------------------*/
 
 /// Releases the logger.
+///
+/// # Examples
+/// ```
+/// # use ion_log::*;
+/// let config = LogConfig::new ();
+/// ion_log::init (&config).unwrap ();
+/// ion_log::release ();
+/// ```
 pub fn release () {
     drop (log::shutdown_logger ().unwrap ());
 }
