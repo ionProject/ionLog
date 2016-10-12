@@ -127,7 +127,7 @@ struct Logger {
 
     // Private
     config: LogConfig,
-    log_output_buffer: BufWriter<File>,
+    log_output_buffer: Option<BufWriter<File>>,
 }
 
 /*===============================================================================================*/
@@ -158,7 +158,7 @@ impl log::Log for Logger {
         }
 
         if self.config.log_to_file {
-            self.log_output_buffer.get_ref ().write (log_string.as_bytes ()).unwrap ();
+            self.log_output_buffer.as_ref ().unwrap ().get_ref ().write (log_string.as_bytes ()).unwrap ();
         }
     }
 }
@@ -209,7 +209,16 @@ pub fn init (config: &LogConfig) -> Result<(), log::SetLoggerError> {
         Box::new (Logger {
 
             config: config.clone (),
-            log_output_buffer: BufWriter::new (File::create (&config.log_output_path).unwrap ()),
+            log_output_buffer: {
+
+                if config.log_to_file {
+                    Some (BufWriter::new (File::create (&config.log_output_path).unwrap ()))
+                }
+
+                else {
+                    None
+                }
+            }
         })
     })
 }
