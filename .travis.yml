@@ -1,0 +1,20 @@
+
+# Set the language to Rust
+language: rust
+
+# Enable testing on Linux and Mac
+os:
+    - linux
+    - osx
+
+# Enable all version channels
+rust:
+    - stable
+    - beta
+    - nightly
+
+# Allow failures on Rust nightly
+matrix:
+    allow_failures:
+        - rust: nightly
+
