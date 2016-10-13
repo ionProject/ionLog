@@ -27,9 +27,6 @@
 //! fn main () {
 //!
 //!     let mut config = LogConfig::new ();
-//!     config.log_to_file = true;
-//!     config.log_output_path = "Log.txt".to_string ();
-//!
 //!     ion_log::init (&config).unwrap ();
 //!
 //!     trace! ("This is a trace log");
